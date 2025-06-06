@@ -1,5 +1,5 @@
 """Functions to read in a decklist and assign parameters to the cards it contains"""
-from api_requests import jprint, loadcarddata, getcarddata, downloadcardimage
+from .api_requests import jprint, loadcarddata, getcarddata, downloadcardimage
 import os
 import json
 
@@ -12,38 +12,35 @@ def make_deck_folder(deckfilename):
     return deckfoldername
 
 
-def decklist_readin(deckfilename):
+def parse_decklist_lines(lines):
+    maindeck = []
+    sideboard = []
+    current_section = maindeck
 
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if line.lower().startswith('sideboard'):
+            current_section = sideboard
+            continue
+
+        try:
+            quantity, card_name = line.split(' ', 1)
+            quantity = int(quantity.strip())
+            card_name = card_name.strip()
+            current_section.extend([card_name] * quantity)
+        except ValueError:
+            print(f"Skipping invalid line: {line}")
+
+    return maindeck, sideboard
+
+def decklist_readin(deckfilename):
     with open(deckfilename) as f:
         lines = f.readlines()
 
     make_deck_folder(deckfilename)
-
-    maindecklines = lines[0:lines.index('\n')]
-    sideboardlines = lines[lines.index('\n') + 1:]
-
-    cardnums = []
-    cardnames = []
-    for element in maindecklines:
-        cardnums.append(element[0:element.index(' ')])
-        cardnames.append(element[element.index(' ') + 1:-1])
-
-    maindeck = []
-    for x in range(len(maindecklines)):
-        for y in range(int(cardnums[x])):
-            maindeck.append(cardnames[x])
-
-    cardnums = []
-    cardnames = []
-    for element in sideboardlines:
-        cardnums.append(element[0:element.index(' ')])
-        cardnames.append(element[element.index(' ') + 1:-1])
-
-    sideboard = []
-    for x in range(len(sideboardlines)):
-        for y in range(int(cardnums[x])):
-            sideboard.append(cardnames[x])
-
+    maindeck, sideboard = parse_decklist_lines(lines)
     return maindeck, sideboard
 
 
